@@ -4,10 +4,10 @@
 Lista de tarefas web (criar, listar, concluir, remover) implantada na AWS com pipeline CI/CD, infraestrutura como código e observabilidade.
 
 **Integrantes e divisão de tarefas:**
-- Fulano – aplicação e testes
-- Ciclano – Terraform / AWS
-- Beltrano – CI/CD e segredos
-- Sicrano – observabilidade e documentação
+- Victor – aplicação e testes
+- Victor – Terraform / AWS
+- Victor – CI/CD e segredos
+- Victor – observabilidade e documentação
 
 ## Arquitetura
 ```
