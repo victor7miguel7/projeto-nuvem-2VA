@@ -13,7 +13,7 @@ def test_health():
 
 def test_criar_e_listar():
     r = client.post("/api/tarefas", json={"titulo": "estudar nuvem"})
-    assert r.status_code == 200
+    assert r.status_code == 201
     titulos = [t["titulo"] for t in client.get("/api/tarefas").json()]
     assert "estudar nuvem" in titulos
 
