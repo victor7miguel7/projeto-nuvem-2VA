@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head><meta charset="utf-8"><title>Tarefas</title></head>
+<body style="font-family:sans-serif;max-width:500px;margin:40px auto">
+  <h1>Minhas Tarefas</h1>
+  <input id="titulo" placeholder="Nova tarefa">
+  <button onclick="criar()">Adicionar</button>
+  <ul id="lista"></ul>
+<script>
+async function carregar() {
+  const r = await fetch('/api/tarefas');
+  const ts = await r.json();
+  document.getElementById('lista').innerHTML = ts.map(t =>
+    `<li>${t.feita ? '✅' : '⬜'} ${t.titulo.replace(/</g,'&lt;')}
+     <button onclick="concluir(${t.id})">ok</button>
+     <button onclick="remover(${t.id})">x</button></li>`).join('');
+}
+async function criar() {
+  const el = document.getElementById('titulo');
+  await fetch('/api/tarefas', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({titulo: el.value})});
+  el.value = ''; carregar();
+}
+async function concluir(id){ await fetch(`/api/tarefas/${id}/concluir`,{method:'PUT'}); carregar(); }
+async function remover(id){ await fetch(`/api/tarefas/${id}`,{method:'DELETE'}); carregar(); }
+carregar();
+</script>
+</body>
+</html>

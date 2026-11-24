@@ -1,0 +1,65 @@
+name: CI-CD
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPO: tarefas-app
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r app/requirements.txt
+      - run: python -m pytest
+        working-directory: app
+
+  deploy:
+    needs: test   # só faz deploy se os testes passarem
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build e push da imagem
+        run: |
+          IMAGE=${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ github.sha }}
+          docker build -t $IMAGE app
+          docker push $IMAGE
+          echo "IMAGE=$IMAGE" > .env
+          echo "GRAFANA_PASSWORD=${{ secrets.GRAFANA_PASSWORD }}" >> .env
+
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/key && chmod 600 ~/.ssh/key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Enviar arquivos e subir containers
+        run: |
+          ssh -i ~/.ssh/key ubuntu@${{ secrets.EC2_HOST }} "mkdir -p ~/app"
+          scp -i ~/.ssh/key -r docker-compose.yml monitoring .env ubuntu@${{ secrets.EC2_HOST }}:~/app/
+          ssh -i ~/.ssh/key ubuntu@${{ secrets.EC2_HOST }} "
+            cd ~/app &&
+            aws ecr get-login-password --region ${{ env.AWS_REGION }} | docker login --username AWS --password-stdin ${{ steps.ecr.outputs.registry }} &&
+            docker compose pull app &&
+            docker compose up -d"
+
+      - name: Verificar disponibilidade após o deploy
+        run: |
+          curl --fail --retry 15 --retry-delay 5 --retry-connrefused \
+            http://${{ secrets.EC2_HOST }}/health
