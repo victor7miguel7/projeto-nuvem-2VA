@@ -230,17 +230,17 @@ Saída do `terraform apply`, com os 5 recursos criados:
 Execução completa e bem-sucedida (testes, build, push no ECR, deploy e health check):
 
 ![pipeline verde](docs/pipeline_ci_cd.png)
-![saída do pipeline](docs/saida_block_ci_cd_teste_maquina.png)
 
 ### Testes bloqueiam o deploy
 
 Com um teste quebrado de propósito, o job `test` falha e o job `deploy` é ignorado:
 
 ![teste falha e deploy ignorado](docs/teste_block_ci_cd.png)
+![saída do pipeline](docs/saida_block_ci_cd_teste_maquina.png)
 
 Histórico de commits: commit com o teste quebrado (❌), seguido do revert (✅):
 
-![teste quebrado e rollback](docs/test_quebrado_mais_rollback.png)
+![teste quebrado e rollback](docs/erro_rowback.png)
 
 ### Segurança
 
