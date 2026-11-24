@@ -30,6 +30,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - id: ecr
@@ -47,7 +48,16 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/key && chmod 600 ~/.ssh/key
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          printf "Host *\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel ERROR\n" > ~/.ssh/config
+
+      - name: Esperar a EC2 ficar pronta
+        run: |
+          for i in $(seq 1 30); do
+            ssh -i ~/.ssh/key -o ConnectTimeout=5 ubuntu@${{ secrets.EC2_HOST }} "cloud-init status --wait" && exit 0
+            echo "EC2 ainda não está pronta, tentando de novo..."
+            sleep 10
+          done
+          echo "EC2 não ficou pronta a tempo" && exit 1
 
       - name: Enviar arquivos e subir containers
         run: |
