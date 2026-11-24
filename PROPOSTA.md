@@ -1,6 +1,6 @@
 # Proposta Inicial
 
-**Grupo:** (nomes dos integrantes)
+**Grupo:** Victor Miguel
 
 ## Problema
 Pessoas e equipes pequenas precisam organizar tarefas do dia a dia de forma simples e acessível de qualquer lugar. A aplicação "Tarefas" oferece uma lista de tarefas web, disponível na nuvem.
