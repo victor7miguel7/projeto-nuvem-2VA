@@ -1,29 +1,68 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="utf-8"><title>Tarefas</title></head>
-<body style="font-family:sans-serif;max-width:500px;margin:40px auto">
-  <h1>Minhas Tarefas</h1>
-  <input id="titulo" placeholder="Nova tarefa">
-  <button onclick="criar()">Adicionar</button>
-  <ul id="lista"></ul>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tarefas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>Minhas Tarefas</h1>
+
+    <form class="form" onsubmit="criar(event)">
+      <input id="titulo" type="text" placeholder="Nova tarefa" autocomplete="off">
+      <button type="submit" class="btn-primary">Adicionar</button>
+    </form>
+
+    <ul id="lista"></ul>
+  </main>
+
 <script>
+function escapar(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 async function carregar() {
   const r = await fetch('/api/tarefas');
   const ts = await r.json();
-  document.getElementById('lista').innerHTML = ts.map(t =>
-    `<li>${t.feita ? '✅' : '⬜'} ${t.titulo.replace(/</g,'&lt;')}
-     <button onclick="concluir(${t.id})">ok</button>
-     <button onclick="remover(${t.id})">x</button></li>`).join('');
+  const lista = document.getElementById('lista');
+
+  if (!ts.length) {
+    lista.innerHTML = '<li class="vazio">Nenhuma tarefa por aqui 🎉</li>';
+    return;
+  }
+
+  lista.innerHTML = ts.map(t => `
+    <li class="tarefa ${t.feita ? 'feita' : ''}">
+      <span>${t.feita ? '✅' : '⬜'}</span>
+      <span class="titulo">${escapar(t.titulo)}</span>
+      <div class="acoes">
+        <button class="btn-icon btn-ok" title="Concluir" onclick="concluir(${t.id})">✓</button>
+        <button class="btn-icon btn-del" title="Remover" onclick="remover(${t.id})">✕</button>
+      </div>
+    </li>`).join('');
 }
-async function criar() {
+
+async function criar(e) {
+  e.preventDefault();
   const el = document.getElementById('titulo');
-  await fetch('/api/tarefas', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({titulo: el.value})});
-  el.value = ''; carregar();
+  const titulo = el.value.trim();
+  if (!titulo) return;
+  await fetch('/api/tarefas', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({titulo})
+  });
+  el.value = '';
+  carregar();
 }
-async function concluir(id){ await fetch(`/api/tarefas/${id}/concluir`,{method:'PUT'}); carregar(); }
-async function remover(id){ await fetch(`/api/tarefas/${id}`,{method:'DELETE'}); carregar(); }
+
+async function concluir(id) { await fetch(`/api/tarefas/${id}/concluir`, {method: 'PUT'}); carregar(); }
+async function remover(id)  { await fetch(`/api/tarefas/${id}`, {method: 'DELETE'}); carregar(); }
+
 carregar();
 </script>
 </body>
