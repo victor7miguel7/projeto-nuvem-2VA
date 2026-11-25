@@ -1,29 +1,459 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head><meta charset="utf-8"><title>Tarefas</title></head>
-<body style="font-family:sans-serif;max-width:500px;margin:40px auto">
-  <h1>Minhas Tarefas</h1>
-  <input id="titulo" placeholder="Nova tarefa">
-  <button onclick="criar()">Adicionar</button>
-  <ul id="lista"></ul>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tarefas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #edf0f7;
+    --surface: #ffffff;
+    --ink: #18213a;
+    --muted: #5b6783;
+    --line: #dce1ec;
+    --hover: #f5f7fc;
+    --accent: #3b4ee0;
+    --accent-ink: #ffffff;
+    --alta: #c93c54;
+    --media: #a9700f;
+    --baixa: #2f7d5c;
+    --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --font-body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1424;
+      --surface: #171e33;
+      --ink: #e8ecf8;
+      --muted: #9aa6c4;
+      --line: #2a3452;
+      --hover: #1d2640;
+      --accent: #7c8cff;
+      --accent-ink: #0f1424;
+      --alta: #ff8095;
+      --media: #e6b04f;
+      --baixa: #5fc79c;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.5 var(--font-body);
+  }
+  .page { max-width: 720px; margin: 0 auto; padding: 40px 20px 72px; }
+
+  button, input, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+
+  /* Cabeçalho: data de hoje e progresso */
+  .topo { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+  h1 {
+    margin: 0;
+    font: 700 clamp(1.7rem, 5vw, 2.4rem)/1.1 var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  .resumo { margin: 8px 0 0; color: var(--muted); }
+  .resumo strong { color: var(--alta); font-weight: 600; }
+  .anel { flex: none; position: relative; width: 76px; height: 76px; }
+  .anel svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .anel circle { fill: none; stroke-width: 7; }
+  .anel .trilho { stroke: var(--line); }
+  .anel .valor {
+    stroke: var(--accent); stroke-linecap: round;
+    stroke-dasharray: 163.36; stroke-dashoffset: 163.36;
+    transition: stroke-dashoffset .6s ease;
+  }
+  .anel b {
+    position: absolute; inset: 0; display: grid; place-content: center;
+    font: 700 1.05rem var(--font-display);
+  }
+
+  /* Superfícies */
+  .painel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+
+  /* Formulário de nova tarefa */
+  .nova { display: grid; grid-template-columns: 1fr auto auto auto; gap: 10px; padding: 14px; margin-bottom: 20px; }
+  .campo {
+    min-width: 0; height: 44px; padding: 0 12px;
+    background: var(--bg); border: 1px solid transparent; border-radius: 8px;
+  }
+  .campo:hover { border-color: var(--line); }
+  .campo:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+  .campo::placeholder { color: var(--muted); }
+  .botao {
+    height: 44px; padding: 0 18px; border: 0; border-radius: 8px; cursor: pointer;
+    background: var(--accent); color: var(--accent-ink); font-weight: 600;
+  }
+  .botao:hover { filter: brightness(1.08); }
+  .botao.neutro { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .botao.neutro:hover { background: var(--hover); filter: none; }
+  .botao.pequeno { height: 36px; padding: 0 14px; font-size: .9rem; }
+
+  /* Barra de filtros */
+  .barra { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .abas { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .aba {
+    height: 34px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent;
+    color: var(--muted); cursor: pointer; font-weight: 500;
+  }
+  .aba:hover { color: var(--ink); }
+  .aba[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+  .aba span { margin-left: 6px; opacity: .8; font-variant-numeric: tabular-nums; }
+  .busca { flex: 1 1 160px; height: 42px; }
+  .limpar { margin-left: auto; }
+
+  /* Lista */
+  .lista { list-style: none; margin: 0; padding: 0; overflow: hidden; }
+  .item {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start;
+    padding: 14px 16px; border-bottom: 1px solid var(--line);
+  }
+  .item:last-child { border-bottom: 0; }
+  .item:hover { background: var(--hover); }
+
+  .check {
+    appearance: none; -webkit-appearance: none; margin: 2px 0 0;
+    width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 7px;
+    display: grid; place-content: center; cursor: pointer; background: transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .check:checked { background: var(--accent); border-color: var(--accent); }
+  .check::after {
+    content: ""; width: 10px; height: 6px; margin-top: -2px;
+    border-left: 2px solid var(--accent-ink); border-bottom: 2px solid var(--accent-ink);
+    transform: rotate(-45deg) scale(0); transition: transform .15s;
+  }
+  .check:checked::after { transform: rotate(-45deg) scale(1); }
+
+  .titulo { margin: 0; overflow-wrap: anywhere; font-weight: 500; }
+  .feita .titulo { color: var(--muted); text-decoration: line-through; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 4px; font-size: .875rem; color: var(--muted); }
+  .feita .meta { opacity: .6; }
+  .prio { display: inline-flex; align-items: center; gap: 6px; }
+  .prio::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+  .prio.alta { color: var(--alta); }
+  .prio.media { color: var(--media); }
+  .prio.baixa { color: var(--baixa); }
+  .prazo.atrasada { color: var(--alta); font-weight: 600; }
+
+  .acoes { display: flex; gap: 2px; }
+  .icone {
+    width: 36px; height: 36px; display: grid; place-content: center;
+    border: 0; border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer;
+  }
+  .icone:hover { background: var(--line); color: var(--ink); }
+  .icone.perigo:hover { color: var(--alta); }
+  .icone svg { width: 18px; height: 18px; }
+  @media (hover: hover) {
+    .acoes { opacity: 0; transition: opacity .15s; }
+    .item:hover .acoes, .item:focus-within .acoes { opacity: 1; }
+  }
+
+  /* Edição na própria linha */
+  .edicao { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto auto; gap: 10px; }
+  .edicao .botoes { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
+
+  .vazio { padding: 40px 20px; text-align: center; color: var(--muted); }
+  .vazio strong { display: block; margin-bottom: 4px; color: var(--ink); font: 600 1.05rem var(--font-display); }
+
+  .aviso {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px);
+    max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 10px;
+    background: var(--ink); color: var(--bg); font-weight: 500; opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .aviso.visivel { opacity: 1; transform: translateX(-50%); }
+
+  @media (max-width: 600px) {
+    .page { padding-top: 24px; }
+    .nova { grid-template-columns: 1fr 1fr; }
+    .nova .titulo-campo { grid-column: 1 / -1; }
+    .nova .botao { grid-column: 1 / -1; }
+    .limpar { margin-left: 0; }
+    .edicao { grid-template-columns: 1fr 1fr; }
+    .edicao .titulo-campo { grid-column: 1 / -1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header class="topo">
+    <div>
+      <h1 id="data-hoje"></h1>
+      <p class="resumo" id="resumo" aria-live="polite"></p>
+    </div>
+    <div class="anel" role="img" aria-label="Progresso das tarefas" id="anel">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle class="trilho" cx="32" cy="32" r="26"/>
+        <circle class="valor" id="anel-valor" cx="32" cy="32" r="26"/>
+      </svg>
+      <b id="anel-texto">0%</b>
+    </div>
+  </header>
+
+  <form class="painel nova" id="form-nova" autocomplete="off">
+    <label class="sr-only" for="nova-titulo">Nova tarefa</label>
+    <input class="campo titulo-campo" id="nova-titulo" maxlength="200" placeholder="O que precisa ser feito?" required>
+    <label class="sr-only" for="nova-prioridade">Prioridade</label>
+    <select class="campo" id="nova-prioridade">
+      <option value="alta">Prioridade alta</option>
+      <option value="media" selected>Prioridade média</option>
+      <option value="baixa">Prioridade baixa</option>
+    </select>
+    <label class="sr-only" for="nova-prazo">Prazo</label>
+    <input class="campo" id="nova-prazo" type="date">
+    <button class="botao" type="submit">Adicionar tarefa</button>
+  </form>
+
+  <div class="barra">
+    <div class="abas" role="group" aria-label="Filtrar tarefas">
+      <button class="aba" type="button" data-filtro="todas" aria-pressed="true">Todas<span id="c-todas">0</span></button>
+      <button class="aba" type="button" data-filtro="pendentes" aria-pressed="false">Pendentes<span id="c-pendentes">0</span></button>
+      <button class="aba" type="button" data-filtro="concluidas" aria-pressed="false">Concluídas<span id="c-concluidas">0</span></button>
+    </div>
+    <label class="sr-only" for="busca">Buscar tarefas</label>
+    <input class="campo busca" id="busca" type="search" placeholder="Buscar tarefas">
+    <button class="botao neutro pequeno limpar" id="limpar" type="button">Limpar concluídas</button>
+  </div>
+
+  <section class="painel">
+    <ul class="lista" id="lista"></ul>
+    <div class="vazio" id="vazio" hidden></div>
+  </section>
+
+</main>
+<div class="aviso" id="aviso" role="status" aria-live="polite"></div>
+
 <script>
+const $ = (s) => document.querySelector(s);
+const NOMES_PRIORIDADE = { alta: 'Prioridade alta', media: 'Prioridade média', baixa: 'Prioridade baixa' };
+const ICONE_EDITAR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const ICONE_EXCLUIR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>';
+
+const estado = { filtro: 'todas', busca: '', editando: null };
+let tarefas = [];
+let resumo = { total: 0, pendentes: 0, concluidas: 0, atrasadas: 0 };
+
+/* ---------- Utilidades ---------- */
+function hojeISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function el(tag, props = {}, ...filhos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  filhos.forEach((f) => f != null && e.append(f));
+  return e;
+}
+
+function descreverPrazo(prazo) {
+  const [a, m, d] = prazo.split('-').map(Number);
+  const alvo = new Date(a, m - 1, d);
+  const h = new Date(); h.setHours(0, 0, 0, 0);
+  const dias = Math.round((alvo - h) / 86400000);
+  if (dias < 0) return { texto: `Atrasada há ${-dias} ${dias === -1 ? 'dia' : 'dias'}`, atrasada: true };
+  if (dias === 0) return { texto: 'Vence hoje', atrasada: false };
+  if (dias === 1) return { texto: 'Vence amanhã', atrasada: false };
+  const curta = alvo.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' });
+  return { texto: `Vence em ${curta}`, atrasada: false };
+}
+
+let temporizadorAviso;
+function avisar(mensagem) {
+  const a = $('#aviso');
+  a.textContent = mensagem;
+  a.classList.add('visivel');
+  clearTimeout(temporizadorAviso);
+  temporizadorAviso = setTimeout(() => a.classList.remove('visivel'), 4000);
+}
+
+async function api(caminho, opcoes = {}) {
+  const resp = await fetch(caminho, { headers: { 'Content-Type': 'application/json' }, ...opcoes });
+  if (!resp.ok) {
+    let msg = 'Algo deu errado. Tente novamente.';
+    try {
+      const corpo = await resp.json();
+      if (typeof corpo.detail === 'string') msg = corpo.detail;
+    } catch (_) { /* resposta sem JSON */ }
+    throw new Error(msg);
+  }
+  return resp.json();
+}
+
+/* ---------- Dados ---------- */
 async function carregar() {
-  const r = await fetch('/api/tarefas');
-  const ts = await r.json();
-  document.getElementById('lista').innerHTML = ts.map(t =>
-    `<li>${t.feita ? '✅' : '⬜'} ${t.titulo.replace(/</g,'&lt;')}
-     <button onclick="concluir(${t.id})">ok</button>
-     <button onclick="remover(${t.id})">x</button></li>`).join('');
+  const params = new URLSearchParams();
+  if (estado.filtro !== 'todas') params.set('status', estado.filtro);
+  if (estado.busca) params.set('busca', estado.busca);
+  try {
+    [tarefas, resumo] = await Promise.all([
+      api('/api/tarefas?' + params),
+      api('/api/resumo?hoje=' + hojeISO()),
+    ]);
+    render();
+  } catch (e) {
+    avisar('Não foi possível carregar as tarefas. Atualize a página.');
+  }
 }
-async function criar() {
-  const el = document.getElementById('titulo');
-  await fetch('/api/tarefas', {method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({titulo: el.value})});
-  el.value = ''; carregar();
+
+async function executar(acao, mensagemErro) {
+  try { await acao(); await carregar(); }
+  catch (e) { avisar(e.message || mensagemErro); }
 }
-async function concluir(id){ await fetch(`/api/tarefas/${id}/concluir`,{method:'PUT'}); carregar(); }
-async function remover(id){ await fetch(`/api/tarefas/${id}`,{method:'DELETE'}); carregar(); }
+
+/* ---------- Renderização ---------- */
+function render() {
+  const data = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('#data-hoje').textContent = data.charAt(0).toUpperCase() + data.slice(1);
+
+  const { total, concluidas, pendentes, atrasadas } = resumo;
+  const pct = total ? Math.round((concluidas / total) * 100) : 0;
+  $('#anel-texto').textContent = pct + '%';
+  $('#anel-valor').style.strokeDashoffset = 163.36 * (1 - pct / 100);
+  $('#anel').setAttribute('aria-label', `${pct}% das tarefas concluídas`);
+
+  const resumoEl = $('#resumo');
+  resumoEl.textContent = total ? `${concluidas} de ${total} tarefas concluídas` : 'Nenhuma tarefa por enquanto';
+  if (atrasadas) {
+    resumoEl.append(' – ', el('strong', { text: `${atrasadas} ${atrasadas === 1 ? 'atrasada' : 'atrasadas'}` }));
+  }
+
+  $('#c-todas').textContent = total;
+  $('#c-pendentes').textContent = pendentes;
+  $('#c-concluidas').textContent = concluidas;
+  $('#limpar').disabled = concluidas === 0;
+  $('#limpar').style.opacity = concluidas === 0 ? '.5' : '1';
+
+  const lista = $('#lista');
+  lista.replaceChildren(...tarefas.map(criarLinha));
+
+  const vazio = $('#vazio');
+  vazio.hidden = tarefas.length > 0;
+  if (!tarefas.length) {
+    const filtrando = estado.busca || estado.filtro !== 'todas';
+    vazio.replaceChildren(
+      el('strong', { text: filtrando ? 'Nada encontrado' : 'Nenhuma tarefa por aqui' }),
+      document.createTextNode(filtrando
+        ? 'Mude o filtro ou a busca para ver outras tarefas.'
+        : 'Escreva a primeira tarefa no campo acima.')
+    );
+  }
+}
+
+function criarLinha(t) {
+  if (estado.editando === t.id) return criarEdicao(t);
+
+  const meta = el('div', { class: 'meta' },
+    el('span', { class: 'prio ' + t.prioridade, text: NOMES_PRIORIDADE[t.prioridade] }));
+  if (t.prazo) {
+    const p = descreverPrazo(t.prazo);
+    meta.append(el('span', { class: 'prazo' + (p.atrasada && !t.feita ? ' atrasada' : ''), text: p.texto }));
+  }
+
+  return el('li', { class: 'item' + (t.feita ? ' feita' : '') },
+    el('input', {
+      class: 'check', type: 'checkbox', checked: t.feita,
+      'aria-label': (t.feita ? 'Reabrir: ' : 'Concluir: ') + t.titulo,
+      onchange: (e) => executar(() => api(`/api/tarefas/${t.id}`, {
+        method: 'PATCH', body: JSON.stringify({ feita: e.target.checked }) }), 'Não foi possível atualizar a tarefa.'),
+    }),
+    el('div', {}, el('p', { class: 'titulo', text: t.titulo }), meta),
+    el('div', { class: 'acoes' },
+      botaoIcone(ICONE_EDITAR, 'Editar: ' + t.titulo, '', () => { estado.editando = t.id; render(); focarEdicao(); }),
+      botaoIcone(ICONE_EXCLUIR, 'Excluir: ' + t.titulo, 'perigo', () => {
+        if (confirm(`Excluir a tarefa "${t.titulo}"?`)) {
+          executar(() => api(`/api/tarefas/${t.id}`, { method: 'DELETE' }), 'Não foi possível excluir a tarefa.');
+        }
+      })));
+}
+
+function botaoIcone(svg, rotulo, extra, aoClicar) {
+  const b = el('button', { class: 'icone ' + extra, type: 'button', 'aria-label': rotulo, title: rotulo, onclick: aoClicar });
+  b.innerHTML = svg; // SVG fixo definido neste arquivo, sem dados do usuário
+  return b;
+}
+
+function criarEdicao(t) {
+  const titulo = el('input', { class: 'campo titulo-campo', maxlength: '200', required: true, value: t.titulo, 'aria-label': 'Título da tarefa' });
+  const prioridade = el('select', { class: 'campo', 'aria-label': 'Prioridade' },
+    ...Object.entries(NOMES_PRIORIDADE).map(([v, n]) => el('option', { value: v, text: n, selected: v === t.prioridade })));
+  const prazo = el('input', { class: 'campo', type: 'date', value: t.prazo || '', 'aria-label': 'Prazo' });
+
+  const cancelar = () => { estado.editando = null; render(); };
+  const form = el('form', { class: 'edicao', onsubmit: (e) => {
+      e.preventDefault();
+      executar(async () => {
+        await api(`/api/tarefas/${t.id}`, { method: 'PATCH', body: JSON.stringify({
+          titulo: titulo.value, prioridade: prioridade.value, prazo: prazo.value || null }) });
+        estado.editando = null;
+      }, 'Não foi possível salvar a tarefa.');
+    }, onkeydown: (e) => { if (e.key === 'Escape') cancelar(); } },
+    titulo, prioridade, prazo,
+    el('div', { class: 'botoes' },
+      el('button', { class: 'botao neutro pequeno', type: 'button', text: 'Cancelar', onclick: cancelar }),
+      el('button', { class: 'botao pequeno', type: 'submit', text: 'Salvar alterações' })));
+  return el('li', { class: 'item' }, form);
+}
+
+function focarEdicao() {
+  const campo = document.querySelector('.edicao .titulo-campo');
+  if (campo) { campo.focus(); campo.select(); }
+}
+
+/* ---------- Eventos ---------- */
+$('#form-nova').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const campo = $('#nova-titulo');
+  executar(async () => {
+    await api('/api/tarefas', { method: 'POST', body: JSON.stringify({
+      titulo: campo.value, prioridade: $('#nova-prioridade').value, prazo: $('#nova-prazo').value || null }) });
+    campo.value = '';
+    $('#nova-prazo').value = '';
+    $('#nova-prioridade').value = 'media';
+    campo.focus();
+  }, 'Não foi possível adicionar a tarefa.');
+});
+
+document.querySelectorAll('.aba').forEach((b) => b.addEventListener('click', () => {
+  estado.filtro = b.dataset.filtro;
+  document.querySelectorAll('.aba').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+  carregar();
+}));
+
+let temporizadorBusca;
+$('#busca').addEventListener('input', (e) => {
+  clearTimeout(temporizadorBusca);
+  temporizadorBusca = setTimeout(() => { estado.busca = e.target.value.trim(); carregar(); }, 250);
+});
+
+$('#limpar').addEventListener('click', () => {
+  if (resumo.concluidas && confirm(`Excluir ${resumo.concluidas} ${resumo.concluidas === 1 ? 'tarefa concluída' : 'tarefas concluídas'}?`)) {
+    executar(() => api('/api/tarefas/concluidas', { method: 'DELETE' }), 'Não foi possível limpar as tarefas.');
+  }
+});
+
 carregar();
 </script>
 </body>
