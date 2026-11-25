@@ -65,13 +65,17 @@ resource "aws_instance" "server" {
     volume_size = 20
   }
 
-  user_data = <<-EOF
+    user_data = <<-EOF
     #!/bin/bash
     apt-get update
     apt-get install -y docker.io docker-compose-v2
     snap install aws-cli --classic
+    mkdir -p /etc/systemd/system/docker.service.d
+    printf '[Service]\nEnvironment=DOCKER_MIN_API_VERSION=1.24\n' > /etc/systemd/system/docker.service.d/min-api.conf
+    systemctl daemon-reload
     usermod -aG docker ubuntu
-    systemctl enable --now docker
+    systemctl enable docker
+    systemctl restart docker
   EOF
 
   tags = { Name = "tarefas-server" }
