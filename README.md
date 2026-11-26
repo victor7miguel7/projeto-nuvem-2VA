@@ -7,8 +7,9 @@ Aplicação web de lista de tarefas implantada na AWS, com infraestrutura como c
 - **Disciplina:** Computação em Nuvem – UFRPE
 - **Repositório:** https://github.com/victor7miguel7/projeto-nuvem-2VA
 
-## LINK VÍDEO DO FUNCIONAMENRO DA APLICAÇÃO
+## LINK VÍDEOS DO FUNCIONAMENTO DA APLICAÇÃO E DE PIPELINE 
 - **VÍDEO DA APLICAÇÃO RODANDO:** https://youtu.be/QfuI51g0jFs
+- **VÍDEO MUDANÇA NO FRONT SENDO APROVADA PELA PIPELINE:** https://youtu.be/l_UNdKzQEF8
 
 ## Integrantes e divisão de tarefas
 
