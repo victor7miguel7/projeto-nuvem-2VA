@@ -7,6 +7,9 @@ Aplicação web de lista de tarefas implantada na AWS, com infraestrutura como c
 - **Disciplina:** Computação em Nuvem – UFRPE
 - **Repositório:** https://github.com/victor7miguel7/projeto-nuvem-2VA
 
+## LINK VÍDEO DO FUNCIONAMENRO DA APLICAÇÃO
+- **VÍDEO DA APLICAÇÃO RODANDO:** https://youtu.be/QfuI51g0jFs
+
 ## Integrantes e divisão de tarefas
 
 | Integrante | Responsabilidade principal |
